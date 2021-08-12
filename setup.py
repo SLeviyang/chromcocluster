@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="chromcocluster",
-    version="0.0.4",
+    version="0.0.5",
     author="Thomas George and Sivan Leviyang",
     author_email="Sivan.Leviyang@georgetown.edu",
     description="Co-clustering of chromatin accessibility data across cell types",
