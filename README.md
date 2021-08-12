@@ -1,19 +1,33 @@
 # chromcocluster 
 
-**chromcocluster** is a Python package for co-clustering  chromatin accessibility data across multiple cell types in a manner that reflects a cell type lineage tree.  **Please do not hesitate to post any questions or comments to https://github.com/SLeviyang/chromcocluster/issues or email Sivan.Leviyang@georgetown.edu.**
+**chromcocluster** is a Python package for co-clustering  chromatin accessibility data across multiple cell types in a manner that reflects a cell type lineage tree.  
 
-**chromcocluster** takes as input a tree describing the lineage structure of a collection of cell types and an accessibility matrix describing genomic accessibility across the cell types and provides as output a clustering of the loci and a clustering of the cell types.  Together the locus and cell type clusters decompose the accessibility matrix into a grid of submatrices representing subsets of loci with similar accessibility across subsets of cell types.  
+**chromcocluster** takes as input a tree describing the lineage structure of a collection of cell types and an accessibility matrix describing genomic accessibility across the cell types and provides as output a clustering of the loci and a clustering of the cell types.  Together the locus and cell type clusters decompose the accessibility matrix into a grid of submatrices, a co-clustering, representing subsets of loci with similar accessibility across subsets of cell types.  
 
-Locus clustering is achieved through the Louvain algorithm.   Cell type clustering is achieved through an algorithm that selects as clusters components of the cell type lineage tree with coherent phenotypes. Details regarding the algorithms implemented in **chromcocluster** can be found in
+Locus clustering is achieved through the Louvain algorithm.   Cell type clustering is achieved through an algorithm that selects as clusters coherent components of the cell type lineage tree, thereby associating accessibility patterns with lineage structure. Details regarding the algorithms implemented in **chromcocluster** can be found in
 
-* *Thomas, Strawn, and Leviyang.  Tree Based Co-Clustering Identifies Chromatin Accessibility Pattens Associated withthe Lineage Structure of Hematopoiesis, Bioarxiv.*.  
+* *George, Strawn, and Leviyang.  Tree Based Co-Clustering Identifies Chromatin Accessibility Pattens Associated withthe Lineage Structure of Hematopoiesis, Bioarxiv.*.  
+
+**chromcocluster** was written by Thomas George and Sivan Leviyang.  If you use **chromcluster**, please cite the George et al. reference above.  See the github page, `https://github.com/SLeviyang/chromcocluster` for example input files and for source files. 
+
+**Please do not hesitate to post any questions or comments to https://github.com/SLeviyang/chromcocluster/issues or email Sivan.Leviyang@georgetown.edu.** 
+
+
+# Obtaining and Using chromcocluster
+
+**chromcocluster** is available on PyPl for Python3 (>=v3.6).  Installation is easiest through a call to pip.
+
+```python
+python3 -m pip install chromcocluster
+```
+
+After installation, import **chromcocluster** modules into python as described below.
 
 The following packages and external tools are required by **chromcocluster**:
 
 1. Python packages: os, sys, pandas, numpy, random, igraph, matplotlib, seaborn, sknetwork.clustering, scipy.sparse, scipy.stats, multiprocessing, time
 2. The bedtools suite of utilities must be installed.  Download bedtools from `https://bedtools.readthedocs.io/en/latest/`.  Bedtools is written by the Quinlan laboratory at the University of Utah.
 
-# Obtaining and Using chromcocluster
 
 
 # Input Files
@@ -38,15 +52,16 @@ The bed files must not have a header line and must contain the following informa
 * `summit` : location of summit of peak relative to the chrStart value using 0-indexing.
 * `q`: quality score, assumed in -log10 form, so that a larger value being better.
 
-The ``accessibility_matrix`` module of **chromcocluster** can be used to generate the accessibility matrix through the following code.
+The `accessibility_matrix` module of **chromcocluster** can be used to generate the accessibility matrix through the following code.
 
 ```python
-a = accessibility_matrix("peak_files", [0,1,2,9,8])
+import chromcocluster.accessibility_matrix as am
+a = am.accessibility_matrix("peak_files", [0,1,2,9,8])
 a.create_master_peak_list("master.bed", window_radius=250)
 a.create_accessibility_matrix("master.bed", "matrix.csv", bedtools_path="/opt/local/bin/bedtools")
 ```
 
-* The first line constructs an `accessibility_matrix` object.  In this case, bed files are in the `"peak_files"` directory and the 0, 1, 2, 9, and 8th column of each bed file give chr, chrStart, chrEnd, summit, and q values.  All files in the directory with a .bed suffix are identified and associated with a cell type.  The cell type names are the bed file names with the .bed suffix dropped.  For example, if a bed file is `DC.bed` then the corresponding cell type name will be `DC`.
+* The first line after the module import constructs an `accessibility_matrix` object.  In this case, bed files are in the `"peak_files"` directory and the 0, 1, 2, 9, and 8th column of each bed file give chr, chrStart, chrEnd, summit, and q values.  All files in the directory with a .bed suffix are identified and associated with a cell type.  The cell type names are the bed file names with the .bed suffix dropped.  For example, if a bed file is `DC.bed` then the corresponding cell type name will be `DC`.
 
 * The second line calls the `create_master_peak_list` method, which creates a master list of non-intersecting windows containing all locus summits across all the bed files.  All windows are centered at a peak summit and are of size `2*window_radius+1`.  In this example, every locus summit is enclosed in a 501 base pair window and the method constructs a master list of non-overlapping windows.  The non-overlapping windows are then written to a bed file, in this case `master.bed`.  
 
@@ -65,26 +80,29 @@ The edge list csv file must be provided by the user.  As noted above, cell type 
 
 ### Example Input Files
 
-Example input files are based on data collected by Yoshida et al.
+Example input files based on data collected by Yoshida et al. are available for download at `https://github.com/SLeviyang/chromcocluster`.
 
 * Yoshida et al.  The cis-Regulatory Atlas of the Mouse Immune System.  Cell. 2019.
 
 
-The bed files formed from the ATACseq dataset of Yoshida et al are provided in the `peak_files` folder.  An edge list corresponding to the tree in Figure 1A of Yoshida et al is provided in the `tree_files` folder.  The results presented in Thomas et al. use these files as input to **chromcocluster**.
+The bed files formed from the ATACseq dataset of Yoshida et al are provided in the `peak_files` folder.  An edge list corresponding to the tree in Figure 1A of Yoshida et al is provided in the `tree_files` folder.  The results presented in George et al. use these files as input to **chromcocluster**.
 
 # Co-Clustering 
 The co-clustering algorithm is implemented in the **cocluster** module.
 
 ```python
-cc = cocluster("edge_list.csv", "matrix.csv")
-cc.locus_cluster(FDR=0.001, min_accessible_cell_types=3, max_accessible_cell_types=None, min_cluster_size=30)
-cc.cell_type_cluster(k, nCPU=1, ntrails=10)
+import chromcocluster.cocluster as cclust
+cc = cclust.cocluster("edge_list.csv", "matrix.csv")
+cc.locus_cluster(FDR=0.001, min_accessible_cell_types=3, max_accessible_cell_types=None, min_cluster_size=30, outfile="locus_clusters.csv")
+cc.cell_type_cluster(k=8, nCPU=1, ntrails=10, outfile="cell_type_clusters.csv")
 ```
 
-* The first line constructs a `cocluster` object using the edge list csv and accessibility matrix csv file paths.
-* The second line performs locus (i.e. row) clustering.  The `FDR` argument modulates the degree to which two loci (i.e. rows) are included in the same cluster.  A small FDR will lead to many, small clusters while a large FDR will lead to few, large clusters.  The default is `0.001`.  Rows with less than `min_accessible_cell_types` 1's in the accessibility matrix are thrown out, allowing the user to focus on loci that are accessible in some minimum number of cell types.  Rows with more than `max_accessible_cell_types` are all grouped in one cluster, allowing the user to group together loci that are accessible across a large range of cell types. Passing `None` to this parameter will result in the algorithm setting the value to the total number of cell types minus `'min_accessible_cell_types`.
-* `min_cluster_size` specifies the minimum number of rows that must be in a cluster.  The default is `30`.  
-* The second line performs the cell type (i.e. column) clustering.  `k` specifies the number of clusters, `nCPU` allows for parallelization, and `ntrials` specifies how many optimization trails are to be run.  The more trails run, the more likely the algorithm is to find the optimal clustering, but with the price of increasing computation time.  The default is `10` trials.
+* The first line after the import constructs a `cocluster` object using the edge list csv and accessibility matrix csv file paths.
+
+* The second line performs locus (i.e. row) clustering.  The `FDR` argument modulates the degree to which two loci (i.e. rows) are included in the same cluster.  A small FDR will lead to many, small clusters while a large FDR will lead to few, large clusters.  The default is `0.001`.  Rows with less than `min_accessible_cell_types` 1's in the accessibility matrix are thrown out, allowing the user to focus on loci that are accessible in some minimum number of cell types.  Rows with more than `max_accessible_cell_types` are all grouped in one cluster, allowing the user to group together loci that are accessible across a large range of cell types. Passing `None` to this parameter will result in the algorithm setting the value to the total number of cell types minus `'min_accessible_cell_types`.  `min_cluster_size` specifies the minimum number of rows that must be in a cluster.  The default is `30`.  The locus clustering information can be saved to file through the `outfile` argument.  If `outfile=None` then the locus clustering is not saved.
+
+* The third line performs the cell type (i.e. column) clustering.  `k` specifies the number of clusters, `nCPU` allows for parallelization, and `ntrials` specifies how many optimization trails are to be run.  The more trails run, the more likely the algorithm is to find the optimal clustering, but with the price of increasing computation time.  The default is `10` trials.  The cell type clustering information can be saved to file through the `outfile` argument.  If `outfile=None` then the cell type clustering is not saved.
+
 
 The `cocluster` object has the following fields which are used to access the clustering results.
 
@@ -96,9 +114,18 @@ The `cocluster` object also has the following fields, which provide more informa
 * `m_list` : a list of numpy matrices partitioning the accessibility matrix according to the row clustering.
 * `locus_edges` : the edges of the graph passed into the Louvain algorithm.  These edges are constructed based on the `FDR` argument passed to the `locus_cluster` method.  The loci (i.e. rows) of the accessibility matrix form the nodes connected by these edges.  
 
+If both the locus and cell type clustering have been saved to file, then the information can be loaded into a `cocluster` object to avoid rerunning the clustering,
+
+```python
+cc2 = cclust.cocluster("edge_list.csv", "matrix.csv")
+cc2.load_clustering(locus_clusters_file="locus_clusters.csv", cell_type_clusters_file="cell_type_clusters.csv")
+```
+The `cc2` object will then have the clustering information created through the `cc` object above.
+
+
 **Several important attributes of the locus (i.e. row) clustering must be kept in mind:**
 
-1. **The intersection of the set of cell names found in the edge list csv file (as start and end points of edges) and the accessible matrix csv file (in the header line) is used to co-cluster.  All cell type columns of the accessibility matrix not in the intersection are removed prior to co-clustering.  Similarly, all nodes in the tree that are not in the intersection are removed prior to co-clustering.  Co-clustering will not proceed if the subset of nodes does not form a tree.**
+1. **The intersection of the set of cell names found in the edge list csv file and the accessible matrix csv file (in the header line) is used to co-cluster.  All cell type columns of the accessibility matrix not in the intersection are removed prior to co-clustering.  Similarly, all nodes in the tree that are not in the intersection are removed prior to co-clustering.  Co-clustering will not proceed if the subset of nodes does not form a tree.**
 2. **The `locus_clusters` field will typically not contain every row (i.e. locus) of the accessibility matrix.  If a row is an outlier in its accessibility pattern relative to all other rows, as modulated by the `FDR`, it will not be included in any cluster.  Further, the `min_accessible_cell_types` parameter setting may throw out many rows (i.e. loci) with low accessibility.**
 3. **All rows/loci that are accessible in more cell types than specified by `max_accessible_cell_types` are grouped in a single cluster, cluster 0**.
 
@@ -110,13 +137,11 @@ The `cocluster` module contains visualization and statistical methods.  After cr
 
 ```python
 cc.plot_tree()
-cc.heatmap(cocluster_approximation=False,
-           collapse_locus_clusters=False,
-           outfile=None)
+cc.heatmap(cocluster_approximation=False, collapse_locus_clusters=False, outfile=None)
 ```
 
-* The `plot_tree` method generates the cell type tree with the cell types colored according to the cell type clustering.
-* The `heatmap` method plots clustered accessibility matrix rows and columns in order of increasing cluster assignment, thereby allowing for visualization of the locus and cell type coclustering.  If `cocluster_approximation` is set to True, then all entries within a cocluster are replaced by the cocluster average.  Coclusters are formed by all rows and columns in a given locus cluster and cell type cluster, respectively.  The coclustering approximation is analagous to the mediod of each cluster in kmeans.  If `collapse_locus_clusters` is True, then the rows of each locus cluster are replaced by a single row with values given by the column means.  The heatmap can be saved to a file by providing a file path in the `outfile` argument.
+* The `plot_tree` method generates a plot of the cell type tree with the cell types colored according to the cell type clustering.   Nodes are labeled according to cell type index and cluster.  For example, a label 23-5 means that the node is the 23 cell type and is in cluster 5.
+* The `heatmap` method plots clustered accessibility matrix rows and columns in order of increasing cluster assignment, thereby allowing for visualization of the locus and cell type coclustering.  If `cocluster_approximation` is set to True, then all entries within a cocluster are replaced by the cocluster average.  The coclustering approximation is analagous to the mediod of each cluster in kmeans.  If `collapse_locus_clusters` is True, then the rows of each locus cluster are replaced by a single row with values given by the column means.  The heatmap can be saved to a file by providing a file path in the `outfile` argument.
 
 The fraction of total and cell type associated variation captured by the coclustering can be computed through the method `R2`.
 
